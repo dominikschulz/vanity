@@ -18,7 +18,6 @@ hosts:
 // example.org -> go-import example.org/bar hg  https://code.google.com/p/bar
 type Host struct {
 	Imports  []Import `yaml:"imports"`
-	Default  Import   `yaml:"default"`
 	Defaults []Import `yaml:"defaults"`
 
 	mutex     *sync.Mutex

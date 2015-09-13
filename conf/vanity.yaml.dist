@@ -1,0 +1,17 @@
+---
+hosts:
+  example.org:
+    defaults:
+      - prefix: 'example.org/x/{{package}}'
+        vcs: git
+        url: 'https://github.com/example/{{package}}'
+    imports:
+      - prefix: 'example.org/x/foo'
+        vcs: git
+        url: 'https://bitbucket.org:example/foo.git'
+  example.com:
+    defaults:
+      - prefix: 'example.com/{{package}}'
+        vcs: git
+        url: 'https://github.com/user/{{package}}'
+
