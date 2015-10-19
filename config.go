@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"sync"
 
 	"gopkg.in/yaml.v1"
 )
@@ -16,22 +15,8 @@ hosts:
 
 // example.org -> go-import example.org/foo git https://github.com/example/foo
 // example.org -> go-import example.org/bar hg  https://code.google.com/p/bar
-type Host struct {
-	Imports  []Import `yaml:"imports"`
-	Defaults []Import `yaml:"defaults"`
 
-	mutex     *sync.Mutex
-	generated []Import
-}
-
-type Import struct {
-	Prefix string `yaml:"prefix"`
-	VCS    string `yaml:"vcs"`
-	URL    string `yaml:"url"`
-	Docs   string `yaml:"docs"`
-	Source string `yaml:"source"`
-}
-
+// Config holds the server configuration
 type Config struct {
 	Hosts map[string]Host `yaml:"hosts"`
 }

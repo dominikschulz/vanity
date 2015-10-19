@@ -1,9 +1,6 @@
 package main
 
-import (
-	"sync"
-	"testing"
-)
+import "testing"
 
 func TestDefaults(t *testing.T) {
 	h := &Host{
@@ -33,11 +30,9 @@ func TestDefaults(t *testing.T) {
 			Import{
 				Prefix: "ex.io/{{package}}",
 				VCS:    "git",
-				URL:    "https://bitbucket.org/org1/ex-{{package}}.git",
+				URL:    "git+ssh://git@gitlab.com/org1/{{package}}.git",
 			},
 		},
-		mutex:     &sync.Mutex{},
-		generated: make([]Import, 0),
 	}
 
 	var tests = []struct {
@@ -49,20 +44,17 @@ func TestDefaults(t *testing.T) {
 		{Repo: "example.org/x/user1/package2", URL: "https://github.com/user1/package2"},
 		{Repo: "example.org/x/user2/package3", URL: "https://github.com/user2/package3"},
 		{Repo: "example.org/x/foo", URL: "https://bitbucket.org/org1/foo.git"},
-		{Repo: "ex.io/bar", URL: "https://bitbucket.org/org1/ex-bar.git"},
+		{Repo: "ex.io/bar", URL: "git+ssh://git@gitlab.com/org1/bar.git"},
 	}
 
 	for _, test := range tests {
-		is := h.getImports(test.Repo)
-		found := false
-		for _, i := range is {
-			if i.Prefix == test.Repo && i.URL == test.URL {
-				t.Logf("Matching import found: %s - %s", i.Prefix, i.URL)
-				found = true
-			}
+		i, err := h.getImport(test.Repo)
+		if err != nil {
+			t.Fatalf("Failed to get import for %s: %s", test.Repo, err)
 		}
-		if !found {
-			t.Errorf("Found no valid import for %s -> %s", test.Repo, test.URL)
+		t.Logf("%s - %s", test.Repo, i.URL)
+		if i.URL != test.URL {
+			t.Errorf("Wrong URL for %s: %s vs. %s", test.Repo, i.URL, test.URL)
 		}
 	}
 }
@@ -79,8 +71,6 @@ func TestGenImportPath(t *testing.T) {
 				Source: "example.org/docs/{{package}}",
 			},
 		},
-		mutex:     &sync.Mutex{},
-		generated: make([]Import, 0),
 	}
 
 	prefix := "example.org/x/foo"
@@ -107,8 +97,6 @@ func TestGenImportNoPath(t *testing.T) {
 				Source: "example.org/docs/{{package}}",
 			},
 		},
-		mutex:     &sync.Mutex{},
-		generated: make([]Import, 0),
 	}
 
 	prefix := "example.org/foo"
