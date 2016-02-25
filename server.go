@@ -34,7 +34,7 @@ func NewServer(h map[string]Host) *Server {
 	return s
 }
 
-// ServeHTTP will servce http
+// ServeHTTP will serve http
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Server", "github.com/dominikschulz/vanity")
 

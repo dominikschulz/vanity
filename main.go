@@ -1,11 +1,15 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+
+	_ "net/http/pprof"
+
+	log "github.com/Sirupsen/logrus"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 func main() {
@@ -14,13 +18,29 @@ func main() {
 		listen = ":8080"
 	}
 
-	config := loadConfiguration("conf/vanity.yaml")
+	listenMgmt := os.Getenv("VANITY_LISTEN_MGMT")
+	if listenMgmt == "" {
+		listenMgmt = ":8081"
+	}
 
-	s := NewServer(config.Hosts)
+	config := loadConfiguration("conf/vanity.yaml")
+	srv := NewServer(config.Hosts)
 
 	go handleSigs()
+	go func() {
+		http.Handle("/metrics", prometheus.Handler())
+		http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "OK", http.StatusOK)
+		})
+		http.HandleFunc("/", http.NotFound)
+		log.Fatal(http.ListenAndServe(listenMgmt, nil))
+	}()
 
-	log.Fatal(http.ListenAndServe(listen, s))
+	s := &http.Server{
+		Addr:    listen,
+		Handler: prometheus.InstrumentHandler("vanity", srv),
+	}
+	log.Fatal(s.ListenAndServe())
 }
 
 func handleSigs() {
