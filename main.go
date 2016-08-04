@@ -8,11 +8,14 @@ import (
 
 	_ "net/http/pprof"
 
-	log "github.com/Sirupsen/logrus"
+	"github.com/dominikschulz/vanity/server"
+	"github.com/go-kit/kit/log"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
 func main() {
+	logger := log.NewJSONLogger(os.Stdout)
+
 	listen := os.Getenv("VANITY_LISTEN")
 	if listen == "" {
 		listen = ":8080"
@@ -23,24 +26,37 @@ func main() {
 		listenMgmt = ":8081"
 	}
 
-	config := loadConfiguration("conf/vanity.yaml")
-	srv := NewServer(config.Hosts)
+	config, err := loadConfiguration(logger, "conf/vanity.yaml")
+	if err != nil {
+		logger.Log("level", "error", "msg", "Could not load config", "err", err)
+		os.Exit(1)
+	}
+
+	srv := server.New(server.Config{
+		Log:   logger,
+		Hosts: config.Hosts,
+	})
 
 	go handleSigs()
 	go func() {
 		http.Handle("/metrics", prometheus.Handler())
-		http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "OK", http.StatusOK)
 		})
 		http.HandleFunc("/", http.NotFound)
-		log.Fatal(http.ListenAndServe(listenMgmt, nil))
+		if err := http.ListenAndServe(listenMgmt, nil); err != nil {
+			logger.Log("level", "error", "msg", "Failed to listen on management port", "err", err)
+		}
 	}()
 
 	s := &http.Server{
 		Addr:    listen,
 		Handler: prometheus.InstrumentHandler("vanity", srv),
 	}
-	log.Fatal(s.ListenAndServe())
+	if err := s.ListenAndServe(); err != nil {
+		logger.Log("level", "error", "msg", "Failed to listen", "err", err)
+		os.Exit(1)
+	}
 }
 
 func handleSigs() {
@@ -48,6 +64,5 @@ func handleSigs() {
 	signal.Notify(exitChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 
 	<-exitChan
-	log.Printf("Exiting due to signal")
 	os.Exit(0)
 }

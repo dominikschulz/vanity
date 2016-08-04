@@ -1,4 +1,4 @@
-package main
+package server
 
 // Import a single go-get import configuration item
 type Import struct {

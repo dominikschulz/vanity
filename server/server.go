@@ -1,11 +1,12 @@
-package main
+package server
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"text/template"
+
+	"github.com/go-kit/kit/log"
 )
 
 var metaTemplate = template.Must(template.New("meta").Parse(`
@@ -16,16 +17,26 @@ var metaTemplate = template.Must(template.New("meta").Parse(`
 // Server contains all vhosts this server knows about
 type Server struct {
 	hosts map[string]*Host
+	log   log.Logger
 }
 
-// NewServer will create a new vanity server
-func NewServer(h map[string]Host) *Server {
+type Config struct {
+	Log   log.Logger
+	Hosts map[string]*Host
+}
+
+// New will create a new vanity server
+func New(cfg Config) *Server {
+	if cfg.Log == nil {
+		cfg.Log = log.NewNopLogger()
+	}
+
 	s := &Server{
-		hosts: make(map[string]*Host, len(h)),
+		hosts: make(map[string]*Host, len(cfg.Hosts)),
 	}
 	// initialize the Hosts, which have not been fully
 	// initialized after loading from YAML
-	for k, v := range h {
+	for k, v := range cfg.Hosts {
 		s.hosts[k] = &Host{
 			Imports:  v.Imports,
 			Defaults: v.Defaults,
@@ -54,7 +65,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := metaTemplate.Execute(w, imports); err != nil {
-		log.Println("Error writing response:", err)
+		s.log.Log("level", "error", "msg", "Error writing response", "err", err)
 	}
 }
 

@@ -2,10 +2,12 @@ package main
 
 import (
 	"io/ioutil"
-	"log"
 	"os"
 
-	"gopkg.in/yaml.v1"
+	"gopkg.in/yaml.v2"
+
+	"github.com/dominikschulz/vanity/server"
+	"github.com/go-kit/kit/log"
 )
 
 const defaultConfig = `
@@ -18,30 +20,34 @@ hosts:
 
 // Config holds the server configuration
 type Config struct {
-	Hosts map[string]Host `yaml:"hosts"`
+	Hosts map[string]*server.Host `yaml:"hosts"`
 }
 
-func loadConfiguration(cfgFile string) Config {
+func loadConfiguration(l log.Logger, cfgFile string) (Config, error) {
+	if l == nil {
+		l = log.NewNopLogger()
+	}
+
 	var err error
 	var buf []byte
 
 	if _, err := os.Stat(cfgFile); err == nil {
-		log.Println("Loading config from ", cfgFile)
+		l.Log("level", "debug", "msg", "Loading config", "source", cfgFile)
 		buf, err = ioutil.ReadFile(cfgFile)
 		if err != nil {
-			log.Println("Could not read config from ", cfgFile)
+			l.Log("level", "error", "msg", "Could not load config", "source", cfgFile)
 			buf = []byte(defaultConfig)
 		}
 	} else {
-		log.Println("Loading default config, due to error ", err)
+		l.Log("level", "error", "msg", "Loading default config due to error", "err", err)
 		buf = []byte(defaultConfig)
 	}
 
 	var cfg Config
 	err = yaml.Unmarshal(buf, &cfg)
 	if err != nil {
-		log.Panic("Could not load config file", err)
+		return Config{}, err
 	}
 
-	return cfg
+	return cfg, nil
 }
