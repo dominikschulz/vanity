@@ -1,14 +1,5 @@
-FROM golang:1.6
+FROM alpine:latest
 
-ENV GOBIN /go/bin
-ENV GOPATH /go
-
-ADD . /go/src/github.com/dominikschulz/vanity
-WORKDIR /go/src/github.com/dominikschulz/vanity
-
-RUN go install
-
-CMD [ "/go/bin/vanity" ]
-
-ENV VANITY_LISTEN ":8080"
-EXPOSE 8080
+ADD vanity /usr/local/bin/vanity
+CMD [ "/usr/local/bin/vanity" ]
+EXPOSE 8080 8081

@@ -1,0 +1,40 @@
+FROM golang:1.6-alpine
+
+RUN apk --update add \
+  ca-certificates \
+  curl \
+  gcc \
+  git \
+  iproute2 \
+  make \
+  musl-dev \
+  && rm -rf /var/cache/apk/*
+
+ENV GOPATH /go
+ENV GOBIN $GOPATH/bin
+ENV PATH $GOBIN:$PATH
+
+RUN mkdir -p "$GOPATH/src" "$GOBIN" && chmod -R 777 "$GOPATH"
+RUN go get -u github.com/golang/lint/golint
+RUN go get -u github.com/opennota/check/cmd/aligncheck
+RUN go get -u github.com/alecthomas/gometalinter
+RUN gometalinter --install --update
+RUN go get -u github.com/axw/gocov/gocov
+RUN go get -u github.com/dominikschulz/gocov-merge
+RUN go get -u github.com/tools/godep
+RUN go get -u github.com/zimmski/lint-naked-returns
+RUN go get -u github.com/FiloSottile/vendorcheck
+
+RUN update-ca-certificates
+
+WORKDIR $GOPATH
+
+ADD . /go/src/github.com/dominikschulz/vanity
+WORKDIR /go/src/github.com/dominikschulz/vanity
+
+RUN make install
+
+CMD [ "/go/bin/vanity" ]
+
+ENV VANITY_LISTEN ":8080"
+EXPOSE 8080
