@@ -49,6 +49,11 @@ func New(cfg Config) *Server {
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Server", "github.com/dominikschulz/vanity")
 
+	if r.URL.Path == "/healthz" {
+		http.Error(w, "Alive", http.StatusOK)
+		return
+	}
+
 	host, _, err := net.SplitHostPort(r.Host)
 	if err != nil {
 		host = r.Host
